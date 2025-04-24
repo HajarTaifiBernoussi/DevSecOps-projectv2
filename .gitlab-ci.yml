@@ -1,0 +1,22 @@
+stages:
+  - build
+  - scan
+
+build_image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker build -f Dockerfile.secure -t registry.gitlab.com/hajar2412615/devsecops-p2/flask-app:$CI_COMMIT_SHORT_SHA .
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin registry.gitlab.com
+    - docker push registry.gitlab.com/hajar2412615/devsecops-p2/flask-app:$CI_COMMIT_SHORT_SHA
+
+scan_trivy:
+  stage: scan
+  image: aquasec/trivy:latest
+  script:
+    - trivy image registry.gitlab.com/hajar2412615/devsecops-p2/flask-app:$CI_COMMIT_SHORT_SHA
